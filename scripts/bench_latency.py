@@ -60,12 +60,12 @@ def main():
     p.add_argument("--press", default="none")
     p.add_argument("--compression-ratio", type=float, default=0.0)
     p.add_argument("--seed", type=int, default=0)
-    p.add_argument("--out", default="results")
+    p.add_argument("--out", default=str(Path(__file__).resolve().parent.parent / "results"))
     args = p.parse_args()
 
     set_seed(args.seed)
     model = AutoModelForCausalLM.from_pretrained(
-        args.model, torch_dtype=torch.bfloat16, attn_implementation="sdpa", device_map="cuda:0"
+        args.model, dtype=torch.bfloat16, attn_implementation="sdpa", device_map="cuda:0"
     ).eval()
     press = build_press(args.press, args.compression_ratio)
     vocab = model.config.vocab_size

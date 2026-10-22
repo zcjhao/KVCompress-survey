@@ -40,7 +40,7 @@ def load_ruler(context_length: int, per_task: int, seed: int) -> pd.DataFrame:
     df["sample_id"] = df.index
     if per_task > 0:
         # Fixed-seed subsample so every method is scored on the same examples.
-        df = df.groupby("task", group_keys=False).apply(lambda g: g.sample(min(per_task, len(g)), random_state=seed))
+        df = df.groupby("task").sample(n=per_task, random_state=seed)
     df["answer"] = df["answer"].apply(lambda a: ast.literal_eval(a) if isinstance(a, str) else list(a))
     return df.sort_values("sample_id")
 
@@ -53,7 +53,7 @@ def main():
     p.add_argument("--press", default="none")
     p.add_argument("--compression-ratio", type=float, default=0.0)
     p.add_argument("--seed", type=int, default=0)
-    p.add_argument("--out", default="results")
+    p.add_argument("--out", default=str(Path(__file__).resolve().parent.parent / "results"))
     args = p.parse_args()
 
     set_seed(args.seed)
@@ -74,7 +74,7 @@ def main():
         "kv-press-text-generation",
         model=args.model,
         device="cuda:0",
-        torch_dtype=torch.bfloat16,
+        dtype=torch.bfloat16,
         model_kwargs={"attn_implementation": "sdpa"},
     )
     press = build_press(args.press, args.compression_ratio)
