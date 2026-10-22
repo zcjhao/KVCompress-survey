@@ -177,7 +177,10 @@ def main():
                        "ttft_s", "tpot_ms", "latency_s", "energy_j"]].mean().round(4).to_dict(),
         "peak_memory_gb": round(preds["peak_memory_bytes"].max() / 1e9, 2),
         "kv_bytes_per_token_uncompressed": kv_bytes_per_token(pipe.model.config),
-        "gpu_hours": round(invocations["wall_s"].sum() / 3600, 3),
+        # Preempted invocations never log their wall time, so gpu_hours_logged is a lower bound;
+        # compute_hours (sum of per-example latency) survives preemptions. GCP billing has the VM total.
+        "gpu_hours_logged": round(invocations["wall_s"].sum() / 3600, 3),
+        "compute_hours": round(preds["latency_s"].sum() / 3600, 3),
         "env": env_info(),
     }
     (out_dir / "summary.json").write_text(json.dumps(summary, indent=2))
