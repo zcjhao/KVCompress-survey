@@ -1,8 +1,8 @@
-"""Prefill latency (TTFT), per-token decode latency (TPOT), peak memory and KV-cache size vs. context length.
+"""Prefill latency (TTFT), per-token decode latency (TPOT), energy, peak memory and KV-cache size vs. context length.
 
 Uses random token ids: speed and memory don't depend on the text, only on its length.
 
-    python scripts/bench_latency.py --lengths 1024 2048 4096 8192 16384
+    python scripts/bench_latency.py --lengths 4096 8192 16384 32768 65536 131072
 """
 
 import argparse
@@ -15,23 +15,25 @@ from pathlib import Path
 import torch
 from transformers import AutoModelForCausalLM, DynamicCache
 
-from common import DEFAULT_MODEL, build_press, cache_bytes, env_info, kv_bytes_per_token, set_seed
+from common import DEFAULT_MODEL, GpuEnergy, build_press, cache_bytes, env_info, kv_bytes_per_token, set_seed
 
 
 @torch.inference_mode()
-def run_once(model, press, length: int, decode_tokens: int, vocab_size: int) -> dict:
+def run_once(model, press, energy, length: int, decode_tokens: int, vocab_size: int) -> dict:
     input_ids = torch.randint(0, vocab_size, (1, length), device=model.device)
     cache = DynamicCache()
     torch.cuda.empty_cache()
     torch.cuda.reset_peak_memory_stats()
 
     torch.cuda.synchronize()
+    e0 = energy.read()
     t0 = time.perf_counter()
     with press(model) if press is not None else contextlib.nullcontext():
         out = model(input_ids=input_ids, past_key_values=cache, logits_to_keep=1)
     next_tok = out.logits[:, -1:].argmax(-1)
     torch.cuda.synchronize()
     ttft = time.perf_counter() - t0
+    e1 = energy.read()
     kv_after_prefill = cache_bytes(cache)
 
     # Pass positions explicitly: after eviction the cache holds fewer entries than the true sequence length.
@@ -42,19 +44,22 @@ def run_once(model, press, length: int, decode_tokens: int, vocab_size: int) -> 
         next_tok = out.logits[:, -1:].argmax(-1)
     torch.cuda.synchronize()
     tpot = (time.perf_counter() - t0) / decode_tokens
+    e2 = energy.read()
 
     return {
         "ttft_s": ttft,
         "tpot_ms": tpot * 1e3,
         "kv_cache_gb": kv_after_prefill / 1e9,
         "peak_memory_gb": torch.cuda.max_memory_allocated() / 1e9,
+        "prefill_energy_j": None if e0 is None else e1 - e0,
+        "decode_energy_j_per_token": None if e0 is None else (e2 - e1) / decode_tokens,
     }
 
 
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--model", default=DEFAULT_MODEL)
-    p.add_argument("--lengths", type=int, nargs="+", default=[1024, 2048, 4096, 8192, 16384])
+    p.add_argument("--lengths", type=int, nargs="+", default=[4096, 8192, 16384, 32768, 65536, 131072])
     p.add_argument("--decode-tokens", type=int, default=128)
     p.add_argument("--repeats", type=int, default=3)
     p.add_argument("--press", default="none")
@@ -69,19 +74,21 @@ def main():
     ).eval()
     press = build_press(args.press, args.compression_ratio)
     vocab = model.config.vocab_size
+    energy = GpuEnergy()
     weights_gb = torch.cuda.memory_allocated() / 1e9
 
-    run_once(model, press, 512, 8, vocab)  # warm-up: CUDA context, kernel selection
+    run_once(model, press, energy, 512, 8, vocab)  # warm-up: CUDA context, kernel selection
 
     rows = []
     for length in args.lengths:
         try:
-            trials = [run_once(model, press, length, args.decode_tokens, vocab) for _ in range(args.repeats)]
+            trials = [run_once(model, press, energy, length, args.decode_tokens, vocab) for _ in range(args.repeats)]
         except torch.cuda.OutOfMemoryError:
             print(f"len={length}: out of memory, stopping")
             rows.append({"length": length, "oom": True})
             break
-        row = {"length": length, **{k: statistics.median(t[k] for t in trials) for k in trials[0]}}
+        row = {"length": length, **{k: None if trials[0][k] is None else statistics.median(t[k] for t in trials)
+                                    for k in trials[0]}}
         rows.append(row)
         print(
             f"len={length:6d}  TTFT {row['ttft_s']:.3f} s  TPOT {row['tpot_ms']:.1f} ms  "

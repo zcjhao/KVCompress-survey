@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-# Create a single-L4 GPU VM on GCP for the KV-cache experiments.
+# Create a single-GPU VM on GCP for the KV-cache experiments.
 # Run this from your laptop (needs gcloud, already authenticated).
 #
-#   bash infra/create_vm.sh          # Spot VM (default): ~40% cheaper, but GCP can preempt it
-#   SPOT=0 bash infra/create_vm.sh   # on-demand VM: never preempted
+#   bash infra/create_vm.sh                  # A100 80GB Spot (default): the team's experiment GPU
+#   GPU=l4 bash infra/create_vm.sh           # L4 24 GB Spot: cheap, for short-context debugging only
+#   SPOT=0 bash infra/create_vm.sh           # on-demand: never preempted (needs on-demand quota)
+#
+# Spot GPUs are often sold out in a zone; if creation fails with "stockout", retry with another ZONE.
 #
 # Everyday commands afterwards:
 #   gcloud compute ssh $VM_NAME --zone $ZONE
@@ -12,9 +15,16 @@
 #   gcloud compute instances delete $VM_NAME --zone $ZONE  # remove completely
 set -euo pipefail
 
-VM_NAME="${VM_NAME:-kv-l4}"
-ZONE="${ZONE:-us-east1-b}"            # your project has L4 quota in us-east1
-MACHINE="${MACHINE:-g2-standard-4}"   # 1x L4 (24 GB), 4 vCPU, 16 GB RAM: the smallest L4 shape
+GPU="${GPU:-a100}"
+case "$GPU" in
+  a100)  # a2-ultragpu-1g: 1x A100 80GB, 12 vCPU, 170 GB RAM; the GPU comes with the machine type
+    VM_NAME="${VM_NAME:-kv-a100}"; ZONE="${ZONE:-us-central1-a}"; MACHINE="${MACHINE:-a2-ultragpu-1g}"
+    ACCEL_ARGS=() ;;
+  l4)    # g2-standard-4: 1x L4 24 GB, 4 vCPU, 16 GB RAM
+    VM_NAME="${VM_NAME:-kv-l4}"; ZONE="${ZONE:-us-central1-b}"; MACHINE="${MACHINE:-g2-standard-4}"
+    ACCEL_ARGS=(--accelerator=type=nvidia-l4,count=1) ;;
+  *) echo "GPU must be a100 or l4"; exit 1 ;;
+esac
 DISK_GB="${DISK_GB:-100}"             # image (50 GB) + env (~10 GB) + Llama-3.1-8B weights (~16 GB) + datasets
 IMAGE_FAMILY="${IMAGE_FAMILY:-common-cu129-ubuntu-2204-nvidia-580}"
 
@@ -27,7 +37,7 @@ fi
 gcloud compute instances create "$VM_NAME" \
   --zone="$ZONE" \
   --machine-type="$MACHINE" \
-  --accelerator=type=nvidia-l4,count=1 \
+  "${ACCEL_ARGS[@]}" \
   --maintenance-policy=TERMINATE \
   --image-project=deeplearning-platform-release \
   --image-family="$IMAGE_FAMILY" \

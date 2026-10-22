@@ -45,6 +45,7 @@ nvidia-curand==10.4.0.35
 nvidia-cusolver==12.0.4.66
 nvidia-cusparse==12.6.3.3
 nvidia-cusparselt-cu13==0.8.1
+nvidia-ml-py==13.615.71
 nvidia-nccl-cu13==2.30.7
 nvidia-nvjitlink==13.4.92
 nvidia-nvshmem-cu13==3.4.5
@@ -73,8 +74,8 @@ torch==2.14.1
 tqdm==4.70.1
 transformers==5.2.0
 triton==3.8.0
-typer==0.27.3
 typer-slim==0.24.0
+typer==0.27.3
 typing-extensions==4.16.0
 tzdata==2026.5
 urllib3==2.8.0

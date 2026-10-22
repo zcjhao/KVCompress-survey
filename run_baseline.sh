@@ -6,8 +6,8 @@
 #
 # All runs resume where they left off, so after a Spot preemption: start the VM and run this again.
 # A stopped VM keeps its disk, so copy the results back to your laptop afterwards:
-#   gcloud compute instances start kv-l4 --zone us-east1-b
-#   gcloud compute scp --recurse kv-l4:~/KVCompress-survey/results ./results --zone us-east1-b
+#   gcloud compute instances start kv-a100 --zone us-central1-a
+#   gcloud compute scp --recurse kv-a100:~/KVCompress-survey/results ./results --zone us-central1-a
 set -euo pipefail
 cd "$(dirname "$0")"
 source .venv/bin/activate
@@ -22,9 +22,12 @@ exec > >(tee -a results/run_baseline.log) 2>&1
 echo "=== baseline started $(date -u) ==="
 
 cd scripts
-python eval_ruler.py --context-length 4096 --per-task 2    # smoke test: fails fast if something is broken
-python eval_ruler.py --context-length 4096 --per-task 50
-python eval_ruler.py --context-length 8192 --per-task 50
-python bench_latency.py --lengths 1024 2048 4096 8192 16384
+# Smoke test: 1 example per task. These are the first examples of the full run below, so they are reused.
+python eval_ruler.py --context-length 32768 --per-task 1
+# Latency sweep next: quick, and shows up front that 128K fits in memory.
+python bench_latency.py --lengths 4096 8192 16384 32768 65536 131072
+python eval_ruler.py --context-length 32768 --per-task 50
+python eval_ruler.py --context-length 65536 --per-task 50
+python eval_ruler.py --context-length 131072 --per-task 20
 
 echo "=== baseline finished $(date -u) ==="

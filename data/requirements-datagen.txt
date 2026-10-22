@@ -1,0 +1,14 @@
+# CPU-only environment for generating RULER data (data/generate_ruler.sh). Not needed on the GPU VM.
+transformers==5.2.0
+nltk
+wonderwords
+numpy
+scipy
+tenacity
+tqdm
+pyyaml
+html2text
+beautifulsoup4
+pandas
+datasets
+huggingface_hub
