@@ -25,7 +25,9 @@ cd scripts
 # Smoke test: 1 example per task. These are the first examples of the full run below, so they are reused.
 python eval_ruler.py --context-length 32768 --per-task 1
 # Latency sweep next: quick, and shows up front that 128K fits in memory.
-python bench_latency.py --lengths 4096 8192 16384 32768 65536 131072
+# Skipped if already done, so a restart after preemption doesn't repeat it.
+[[ -f ../results/latency_Llama-3.1-8B-Instruct_none_r0.0/summary.json ]] \
+  || python bench_latency.py --lengths 4096 8192 16384 32768 65536 131072
 python eval_ruler.py --context-length 32768 --per-task 50
 python eval_ruler.py --context-length 65536 --per-task 50
 python eval_ruler.py --context-length 131072 --per-task 20
