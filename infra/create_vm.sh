@@ -37,14 +37,14 @@ fi
 gcloud compute instances create "$VM_NAME" \
   --zone="$ZONE" \
   --machine-type="$MACHINE" \
-  "${ACCEL_ARGS[@]}" \
+  ${ACCEL_ARGS[@]+"${ACCEL_ARGS[@]}"} \
   --maintenance-policy=TERMINATE \
   --image-project=deeplearning-platform-release \
   --image-family="$IMAGE_FAMILY" \
   --boot-disk-size="${DISK_GB}GB" \
   --boot-disk-type=pd-balanced \
   --metadata=install-nvidia-driver=True \
-  "${EXTRA_ARGS[@]}"
+  ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}
 
 echo "Created $VM_NAME. SSH in with: gcloud compute ssh $VM_NAME --zone $ZONE"
 echo "Remember to STOP it when you are done: gcloud compute instances stop $VM_NAME --zone $ZONE"
