@@ -1,0 +1,8 @@
+# Top-level dependencies. setup_env.sh installs these and then writes the exact
+# resolved versions to requirements.lock.txt. Commit the lock file and have
+# everyone install from it so all runs use identical package versions.
+kvpress==0.5.5
+datasets>=2.21.0
+pandas>=2.2.2
+accelerate>=1.0.0
+nvidia-ml-py>=12.0
