@@ -2,8 +2,9 @@
 
 `meta-llama/Llama-3.1-8B-Instruct`, BF16, SDPA attention, batch size 1, 1x A100-SXM4-80GB (GCP Spot),
 torch 2.14.1+cu130, transformers 5.2.0, kvpress 0.5.5. Run on 2026-10-22/23 with `run_baseline.sh`.
-Each folder holds the `summary.json` written by the scripts. The per-example `predictions.jsonl`
-files (1.5 MB) are not committed; ask Jiahao for them, or regenerate them (about 5.7 A100-hours).
+Each RULER folder holds the `summary.json` and the per-example `predictions.jsonl` written by the
+scripts (model output, references, score, tokens, KV size, timings, memory, energy for every example),
+so results can be re-scored or re-plotted without rerunning.
 
 ## RULER accuracy and cost
 
