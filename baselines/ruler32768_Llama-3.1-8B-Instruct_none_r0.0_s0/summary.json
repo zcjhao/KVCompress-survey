@@ -1,0 +1,64 @@
+{
+  "run": "ruler32768_Llama-3.1-8B-Instruct_none_r0.0_s0",
+  "config": {
+    "model": "meta-llama/Llama-3.1-8B-Instruct",
+    "context_length": 32768,
+    "per_task": 50,
+    "press": "none",
+    "compression_ratio": 0.0,
+    "seed": 0,
+    "out": "/home/jhc/KVCompress-survey/results"
+  },
+  "press": "None",
+  "dataset": {
+    "repo": "Jhc6880/ruler-long",
+    "revision": "deda02ec4c98e4cd6197f4738b03a1070767abf1",
+    "config": "32768",
+    "split_file": "splits/ruler32768_s0.json"
+  },
+  "n_samples": 650,
+  "accuracy": 88.68,
+  "accuracy_per_task": {
+    "cwe": 31.0,
+    "fwe": 90.67,
+    "niah_multikey_1": 98.0,
+    "niah_multikey_2": 100.0,
+    "niah_multikey_3": 98.0,
+    "niah_multiquery": 98.0,
+    "niah_multivalue": 100.0,
+    "niah_single_1": 100.0,
+    "niah_single_2": 100.0,
+    "niah_single_3": 100.0,
+    "qa_1": 82.0,
+    "qa_2": 56.0,
+    "vt": 99.2
+  },
+  "mean": {
+    "context_tokens": 32096.2508,
+    "output_tokens": 20.7092,
+    "kv_cache_tokens": 32096.2508,
+    "kv_cache_bytes": 4206919780.8246,
+    "prefill_s": 3.6005,
+    "ttft_s": 3.7316,
+    "tpot_ms": 37.9878,
+    "latency_s": 4.6159,
+    "energy_j": 1599.9077
+  },
+  "peak_memory_gb": 24.26,
+  "kv_bytes_per_token_uncompressed": 131072,
+  "gpu_hours_logged": 0.194,
+  "compute_hours": 0.833,
+  "env": {
+    "gpu": "NVIDIA A100-SXM4-80GB",
+    "gpu_count": 1,
+    "gpu_memory_gb": 85.1,
+    "driver": "580.178.04",
+    "cuda": "13.0",
+    "python": "3.11.17",
+    "torch": "2.14.1+cu130",
+    "transformers": "5.2.0",
+    "kvpress": "0.5.5",
+    "pandas": "2.3.3",
+    "git_commit": "4ebb17c"
+  }
+}
