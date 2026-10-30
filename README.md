@@ -140,6 +140,13 @@ Note: the kvpress pipeline compresses the context *before* it sees the question
 (query-agnostic compression). SnapKV's paper chooses tokens using the question, so expect
 lower SnapKV scores here than the paper reports. Mention this in the comparison.
 
+**Check the KV-size numbers for your method.** `cache_bytes()` in `scripts/common.py` only counts
+the cache's regular key/value tensors, which is right for token eviction (e.g. SnapKV) but can be
+wrong for other kinds of methods. Quantized caches keep most of their data elsewhere, and kvpress's
+head-wise presses (e.g. DuoAttention) only mask entries rather than freeing them. Before a full run,
+check in your smoke test that the reported KV size matches what your method should keep, and fix
+the measurement or note the limitation in the write-up if it doesn't.
+
 ## Benchmarking a method, step by step
 
 Example: SnapKV at compression ratio 0.5. The team has one A100, so runs happen one at a time.
