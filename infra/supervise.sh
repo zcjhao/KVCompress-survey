@@ -24,7 +24,11 @@ while true; do
       fi
       log "preempted; restarting"
       until g instances start "$VM" >/dev/null 2>&1; do log "start failed (Spot stockout?); retrying in 5 min"; sleep 300; done
-      until g ssh "$VM" --command true >/dev/null 2>&1; do sleep 15; done
+      # Wait for SSH, but give up if the VM is preempted again before it comes up; the next pass restarts it.
+      until g ssh "$VM" --command true >/dev/null 2>&1; do
+        [[ "$(g instances describe "$VM" --format="value(status)" 2>/dev/null)" == RUNNING ]] || break
+        sleep 15
+      done
       g ssh "$VM" --command "cd KVCompress-survey && tmux new -d -s run '$RUN'" && log "relaunched" ;;
     *) log "unexpected status: $s"; sleep 120 ;;
   esac

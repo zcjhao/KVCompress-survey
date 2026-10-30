@@ -18,6 +18,7 @@ raising --per-task later only runs the new examples.
 import argparse
 import ast
 import json
+import os
 import re
 import time
 from datetime import datetime, timezone
@@ -90,7 +91,19 @@ def main():
     pred_path = out_dir / "predictions.jsonl"
     done = set()
     if pred_path.exists():
-        done = {json.loads(line)["sample_id"] for line in pred_path.open()}
+        # A preemption can leave a torn last line (often zero bytes); drop it so that example reruns.
+        lines = pred_path.read_bytes().splitlines(keepends=True)
+        good = []
+        for line in lines:
+            try:
+                json.loads(line)["sample_id"]
+                good.append(line)
+            except (ValueError, KeyError, TypeError):
+                pass
+        if len(good) != len(lines):
+            print(f"Dropping {len(lines) - len(good)} unreadable line(s) from {pred_path}")
+            pred_path.write_bytes(b"".join(l if l.endswith(b"\n") else l + b"\n" for l in good))
+        done = {json.loads(line)["sample_id"] for line in good}
 
     ds = load_dataset(repo, str(args.context_length), split="test", revision=revision)
     todo = [i for i in ids if i not in done]
@@ -153,6 +166,7 @@ def main():
             }
             f.write(json.dumps(rec) + "\n")
             f.flush()
+            os.fsync(f.fileno())  # so a preemption can't leave a half-written line
             if n % 10 == 0 or n == len(todo):
                 print(f"  {n}/{len(todo)}  last: {latency:.1f} s, {context_tokens} context tokens")
 
