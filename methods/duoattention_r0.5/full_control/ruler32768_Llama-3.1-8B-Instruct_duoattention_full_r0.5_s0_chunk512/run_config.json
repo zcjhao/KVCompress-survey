@@ -1,0 +1,12 @@
+{
+  "mode": "full",
+  "model": "meta-llama/Llama-3.1-8B-Instruct",
+  "ratio": 0.5,
+  "chunk_size": 512,
+  "context_length": 32768,
+  "seed": 0,
+  "pattern": "assets/duoattention_pattern",
+  "data_repo": "Jhc6880/ruler-long",
+  "data_revision": "deda02ec4c98e4cd6197f4738b03a1070767abf1",
+  "implementation": "physical_dual_kv_cache_functional_port"
+}
