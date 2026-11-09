@@ -13,15 +13,15 @@ import time
 from pathlib import Path
 
 import torch
-from transformers import AutoModelForCausalLM, DynamicCache
+from transformers import AutoModelForCausalLM
 
-from common import DEFAULT_MODEL, GpuEnergy, build_press, cache_bytes, env_info, kv_bytes_per_token, set_seed
+from common import DEFAULT_MODEL, GpuEnergy, build_cache, build_press, cache_bytes, env_info, kv_bytes_per_token, set_seed
 
 
 @torch.inference_mode()
-def run_once(model, press, energy, length: int, decode_tokens: int, vocab_size: int) -> dict:
+def run_once(model, press, new_cache, energy, length: int, decode_tokens: int, vocab_size: int) -> dict:
     input_ids = torch.randint(0, vocab_size, (1, length), device=model.device)
-    cache = DynamicCache()
+    cache = new_cache()
     torch.cuda.empty_cache()
     torch.cuda.reset_peak_memory_stats()
 
@@ -73,16 +73,17 @@ def main():
         args.model, dtype=torch.bfloat16, attn_implementation="sdpa", device_map="cuda:0"
     ).eval()
     press = build_press(args.press, args.compression_ratio)
+    new_cache = lambda: build_cache(args.press, args.compression_ratio, model.config)  # noqa: E731
     vocab = model.config.vocab_size
     energy = GpuEnergy()
     weights_gb = torch.cuda.memory_allocated() / 1e9
 
-    run_once(model, press, energy, 512, 8, vocab)  # warm-up: CUDA context, kernel selection
+    run_once(model, press, new_cache, energy, 512, 8, vocab)  # warm-up: CUDA context, kernel selection
 
     rows = []
     for length in args.lengths:
         try:
-            trials = [run_once(model, press, energy, length, args.decode_tokens, vocab) for _ in range(args.repeats)]
+            trials = [run_once(model, press, new_cache, energy, length, args.decode_tokens, vocab) for _ in range(args.repeats)]
         except torch.cuda.OutOfMemoryError:
             print(f"len={length}: out of memory, stopping")
             rows.append({"length": length, "oom": True})

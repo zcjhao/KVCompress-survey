@@ -26,7 +26,7 @@ from pathlib import Path
 import pandas as pd
 import torch
 from datasets import load_dataset
-from transformers import DynamicCache, pipeline
+from transformers import pipeline
 
 import kvpress  # noqa: F401  (registers the "kv-press-text-generation" pipeline)
 from common import (
@@ -35,6 +35,7 @@ from common import (
     RULER_SOURCES,
     ForwardTimer,
     GpuEnergy,
+    build_cache,
     build_press,
     cache_bytes,
     env_info,
@@ -105,6 +106,16 @@ def main():
     )
     press = build_press(args.press, args.compression_ratio)
     timer = ForwardTimer(pipe.model.model)
+    # KV size right after the context prefill (and press). A quantized cache keeps question and answer
+    # tokens afterwards, since the pipeline can only trim a DynamicCache; for those it is the same number.
+    prefill_kv = {}
+
+    def record_prefill_kv(module, hook_args, kwargs, output):
+        if not prefill_kv:
+            c = kwargs["past_key_values"]
+            prefill_kv.update(tokens=c.get_seq_length(), bytes=cache_bytes(c))
+
+    pipe.model.model.register_forward_hook(record_prefill_kv, with_kwargs=True)
     energy = GpuEnergy()
     started = datetime.now(timezone.utc)
     t_start = time.perf_counter()
@@ -113,7 +124,8 @@ def main():
         for n, i in enumerate(todo, 1):
             row = ds[i]
             answers = ast.literal_eval(row["answer"]) if isinstance(row["answer"], str) else list(row["answer"])
-            cache = DynamicCache()
+            cache = build_cache(args.press, args.compression_ratio, pipe.model.config)
+            prefill_kv.clear()
             timer.reset()
             torch.cuda.reset_peak_memory_stats()
             e0 = energy.read()
@@ -139,9 +151,9 @@ def main():
                 "context_tokens": context_tokens,
                 "question_tokens": question_tokens,
                 "output_tokens": len(timer.calls) - 1,
-                # The pipeline trims the answer from the cache afterwards, so this is the (compressed) context only.
-                "kv_cache_tokens": cache.get_seq_length(),
-                "kv_cache_bytes": cache_bytes(cache),
+                # The (compressed) context only, measured after prefill.
+                "kv_cache_tokens": prefill_kv["tokens"],
+                "kv_cache_bytes": prefill_kv["bytes"],
                 "prefill_s": prefill_s,
                 "ttft_s": prefill_s + question_s,
                 "tpot_ms": decode_s / max(len(timer.calls) - 2, 1) * 1e3,
@@ -169,6 +181,7 @@ def main():
         "run": run,
         "config": vars(args),
         "press": repr(press),
+        "cache": repr(build_cache(args.press, args.compression_ratio, pipe.model.config)),
         "dataset": {"repo": repo, "revision": revision, "config": str(args.context_length),
                     "split_file": f"splits/ruler{args.context_length}_s{args.seed}.json"},
         "n_samples": len(preds),

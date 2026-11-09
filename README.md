@@ -130,6 +130,11 @@ a kvpress press (example in `scripts/presses/__init__.py`), then run the same co
 `--press <name> --compression-ratio <r>`. Each method has its own file, so branches for different
 methods don't conflict.
 
+Methods that change how the cache is *stored* rather than which tokens it keeps (KV quantization)
+are not presses: their file's `build()` returns `None`, and a second function,
+`build_cache(compression_ratio, config)`, returns the cache to use for each request
+(see `scripts/presses/fp8.py`, `scripts/presses/kivi.py` and `scripts/kv_quant.py`).
+
 To score the same examples as the baseline, use the same `--context-length` and `--per-task`
 (50 at 32K and 64K, 20 at 128K). `eval_ruler.py` always loads `Jhc6880/ruler-long` at the commit
 pinned in `scripts/common.py` and takes the first `--per-task` ids of each task from the committed
