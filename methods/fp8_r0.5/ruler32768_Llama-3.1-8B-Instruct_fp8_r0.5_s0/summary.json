@@ -1,0 +1,65 @@
+{
+  "run": "ruler32768_Llama-3.1-8B-Instruct_fp8_r0.5_s0",
+  "config": {
+    "model": "meta-llama/Llama-3.1-8B-Instruct",
+    "context_length": 32768,
+    "per_task": 50,
+    "press": "fp8",
+    "compression_ratio": 0.5,
+    "seed": 0,
+    "out": "/root/KVCompress-survey/results"
+  },
+  "press": "None",
+  "cache": "QuantizedKVCache(FP8Layer(float8_e4m3fn, scale=1.0) x 32)",
+  "dataset": {
+    "repo": "Jhc6880/ruler-long",
+    "revision": "deda02ec4c98e4cd6197f4738b03a1070767abf1",
+    "config": "32768",
+    "split_file": "splits/ruler32768_s0.json"
+  },
+  "n_samples": 650,
+  "accuracy": 89.21,
+  "accuracy_per_task": {
+    "cwe": 33.8,
+    "fwe": 90.67,
+    "niah_multikey_1": 98.0,
+    "niah_multikey_2": 100.0,
+    "niah_multikey_3": 100.0,
+    "niah_multiquery": 98.0,
+    "niah_multivalue": 100.0,
+    "niah_single_1": 100.0,
+    "niah_single_2": 100.0,
+    "niah_single_3": 100.0,
+    "qa_1": 80.0,
+    "qa_2": 60.0,
+    "vt": 99.2
+  },
+  "mean": {
+    "context_tokens": 32096.2508,
+    "output_tokens": 20.9108,
+    "kv_cache_tokens": 32096.2508,
+    "kv_cache_bytes": 2103459890.4123,
+    "prefill_s": 4.2384,
+    "ttft_s": 4.4046,
+    "tpot_ms": 37.8076,
+    "latency_s": 5.4325,
+    "energy_j": 1999.741
+  },
+  "peak_memory_gb": 22.12,
+  "kv_bytes_per_token_uncompressed": 131072,
+  "gpu_hours_logged": 0.744,
+  "compute_hours": 0.981,
+  "env": {
+    "gpu": "NVIDIA A100-SXM4-80GB",
+    "gpu_count": 1,
+    "gpu_memory_gb": 85.1,
+    "driver": "595.91.07",
+    "cuda": "13.0",
+    "python": "3.11.18",
+    "torch": "2.14.1+cu130",
+    "transformers": "5.2.0",
+    "kvpress": "0.5.5",
+    "pandas": "2.3.3",
+    "git_commit": "2207a5e"
+  }
+}
