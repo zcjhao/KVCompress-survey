@@ -1,0 +1,91 @@
+{
+  "config": {
+    "model": "meta-llama/Llama-3.1-8B-Instruct",
+    "lengths": [
+      4096,
+      8192,
+      16384,
+      32768,
+      65536,
+      131072
+    ],
+    "decode_tokens": 128,
+    "repeats": 3,
+    "press": "kivi",
+    "compression_ratio": 0.875,
+    "seed": 0,
+    "out": "/root/KVCompress-survey/results"
+  },
+  "batch_size": 1,
+  "weights_gb": 16.06,
+  "kv_bytes_per_token_uncompressed": 131072,
+  "results": [
+    {
+      "length": 4096,
+      "ttft_s": 0.33055143896490335,
+      "tpot_ms": 30.991147195891244,
+      "kv_cache_gb": 0.100663296,
+      "peak_memory_gb": 16.658408448,
+      "prefill_energy_j": 117.60400003194809,
+      "decode_energy_j_per_token": 7.001914062537253
+    },
+    {
+      "length": 8192,
+      "ttft_s": 0.696286235935986,
+      "tpot_ms": 30.89916876706411,
+      "kv_cache_gb": 0.201326592,
+      "peak_memory_gb": 17.247773696,
+      "prefill_energy_j": 274.5939999818802,
+      "decode_energy_j_per_token": 8.299937499687076
+    },
+    {
+      "length": 16384,
+      "ttft_s": 1.5437819838989526,
+      "tpot_ms": 46.14152064823429,
+      "kv_cache_gb": 0.402653184,
+      "peak_memory_gb": 18.426504192,
+      "prefill_energy_j": 591.8620000481606,
+      "decode_energy_j_per_token": 13.4423828125
+    },
+    {
+      "length": 32768,
+      "ttft_s": 3.789768033195287,
+      "tpot_ms": 74.97452122515824,
+      "kv_cache_gb": 0.805306368,
+      "peak_memory_gb": 20.783965184,
+      "prefill_energy_j": 1493.8220000267029,
+      "decode_energy_j_per_token": 22.657210937701166
+    },
+    {
+      "length": 65536,
+      "ttft_s": 10.438343436922878,
+      "tpot_ms": 131.49615115617053,
+      "kv_cache_gb": 1.610612736,
+      "peak_memory_gb": 25.498887168,
+      "prefill_energy_j": 4154.113000035286,
+      "decode_energy_j_per_token": 41.415968749672174
+    },
+    {
+      "length": 131072,
+      "ttft_s": 33.060496469028294,
+      "tpot_ms": 244.26584493085102,
+      "kv_cache_gb": 3.221225472,
+      "peak_memory_gb": 34.928731136,
+      "prefill_energy_j": 13126.044000029564,
+      "decode_energy_j_per_token": 79.04435937479138
+    }
+  ],
+  "env": {
+    "gpu": "NVIDIA A100-SXM4-80GB",
+    "gpu_count": 1,
+    "gpu_memory_gb": 85.1,
+    "driver": "595.91.07",
+    "cuda": "13.0",
+    "python": "3.11.18",
+    "torch": "2.14.1+cu130",
+    "transformers": "5.2.0",
+    "kvpress": "0.5.5",
+    "pandas": "2.3.3",
+    "git_commit": "2207a5e"
+  }
+}

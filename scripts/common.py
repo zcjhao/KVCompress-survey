@@ -10,6 +10,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from transformers import DynamicCache
 
 DEFAULT_MODEL = "meta-llama/Llama-3.1-8B-Instruct"
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -44,6 +45,16 @@ def build_press(name: str, compression_ratio: float):
     return module.build(compression_ratio)
 
 
+def build_cache(name: str, compression_ratio: float, config):
+    """A fresh KV cache for one request: DynamicCache, unless the method's press file defines
+    build_cache(compression_ratio, config) because it changes how the cache is stored (e.g. quantization)."""
+    if name != "none":
+        module = importlib.import_module(f"presses.{name}")
+        if hasattr(module, "build_cache"):
+            return module.build_cache(compression_ratio, config)
+    return DynamicCache()
+
+
 def kv_bytes_per_token(config, dtype_bytes: int = 2) -> int:
     """Theoretical uncompressed KV-cache size per token: layers x kv_heads x head_dim x 2 (K and V) x bytes."""
     head_dim = getattr(config, "head_dim", None) or config.hidden_size // config.num_attention_heads
@@ -51,10 +62,13 @@ def kv_bytes_per_token(config, dtype_bytes: int = 2) -> int:
 
 
 def cache_bytes(cache) -> int:
-    """Bytes actually held by a DynamicCache (shrinks once a press evicts tokens).
-    Quantized caches store their data elsewhere; extend this when the team adds one."""
+    """Bytes actually held by the cache (shrinks once a press evicts tokens).
+    Layers that store their data elsewhere (the quantized caches in kv_quant.py) report it with stored_bytes()."""
     total = 0
     for layer in cache.layers:
+        if hasattr(layer, "stored_bytes"):
+            total += layer.stored_bytes()
+            continue
         for t in (layer.keys, layer.values):
             if t is not None:
                 total += t.numel() * t.element_size()
